@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Simple WebRTC Client</title>
+</head>
+<body>
+    <h1>Simple WebRTC Client</h1>
+    <script>
+        async function initWebRTC() {
+            const pc = new RTCPeerConnection();
+
+            // 创建offer
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+
+            // 发送offer到服务器
+            const response = await fetch('/offer', {
+                method: 'POST',
+                body: JSON.stringify(offer),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            const answer = await response.json();
+            await pc.setRemoteDescription(answer);
+
+            // 打印连接状态
+            pc.oniceconnectionstatechange = () => {
+                console.log('ICE ConnectionState:', pc.iceConnectionState);
+            };
+        }
+
+        // 初始化WebRTC
+        initWebRTC();
+    </script>
+</body>
+</html>

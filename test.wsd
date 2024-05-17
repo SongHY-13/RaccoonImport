@@ -1,0 +1,52 @@
+@startuml
+
+skinparam sequenceMessageAlign center
+skinparam backgroundColor #F5F5F5  
+skinparam sequence {
+  ArrowColor #008CBA  
+  ActorBorderColor #666666  
+  LifeLineBorderColor #CCCCCC  
+  LifeLineBackgroundColor #EAEAEA  
+
+  ParticipantBorderColor #008CBA  
+  ParticipantBackgroundColor #D6EAF8  
+  ParticipantFontSize 12  
+  ParticipantFontColor #333333  
+
+  ActorBackgroundColor #FFFFFF  
+  ActorFontColor #333333  
+  ActorFontSize 17  
+  ActorFontName Helvetica
+}
+
+actor 用户
+participant "WebRTC 客户端" as webrtcClient
+participant "语音识别服务" as voiceService
+participant "大模型知识问答模块" as knowledgeQA
+participant "WebRTC 服务器" as webrtcServer
+database "音频流"
+
+用户 -> webrtcClient : 开始语音输入
+activate webrtcClient
+webrtcClient -> webrtcServer : 建立WebRTC连接
+activate webrtcServer
+webrtcServer --> webrtcClient : WebRTC会话建立成功
+
+loop 音频流传输
+    webrtcClient -> webrtcServer : 传输音频流
+    activate "音频流"
+    webrtcServer -> voiceService : 发送语音识别请求
+    activate voiceService
+    voiceService -> knowledgeQA : 语音转文字 (ASR)
+    activate knowledgeQA
+    knowledgeQA --> voiceService : 文本输入
+    voiceService --> webrtcClient : 显示转录文本
+    deactivate "音频流"
+end
+
+webrtcClient -> 用户 : 停止语音输入
+deactivate webrtcClient
+deactivate webrtcServer
+deactivate voiceService
+deactivate knowledgeQA
+@enduml

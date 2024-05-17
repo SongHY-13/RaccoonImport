@@ -1,0 +1,66 @@
+@startuml 语音服务整体时序
+skinparam sequenceMessageAlign center
+skinparam backgroundColor #F5F5F5
+skinparam sequence {
+  ArrowColor #008CBA
+  ActorBorderColor #666666
+  LifeLineBorderColor #CCCCCC
+  LifeLineBackgroundColor #EAEAEA
+  ParticipantBorderColor #008CBA
+  ParticipantBackgroundColor #D6EAF8
+  ParticipantFontSize 12
+  ParticipantFontColor #333333
+  ActorBackgroundColor #FFFFFF
+  ActorFontColor #333333
+  ActorFontSize 17
+  ActorFontName Helvetica
+}
+
+actor "用户" as User
+participant "Web客户端" as Client
+participant "RTC服务器" as RTC_Server
+participant "ASR服务" as ASR_Service
+participant "TTS服务" as TTS_Service
+participant "音频处理模块" as AudioModule
+
+User -> Client: 请求语音通信
+Client -> RTC_Server: 请求建立连接
+
+alt 连接成功
+  RTC_Server --> Client: 发送连接确认
+  Client -> Client: 启动麦克风采集音频
+  Client -> RTC_Server: 发送音频流
+  
+  activate ASR_Service
+  RTC_Server -> ASR_Service: 转送音频流进行识别
+  ASR_Service --> RTC_Server: 返回识别文本
+  deactivate ASR_Service
+  
+  RTC_Server --> Client: 发送识别文本
+  Client -> TTS_Service: 发送文本请求语音
+  
+  activate TTS_Service
+  TTS_Service --> RTC_Server: 返回语音流
+  deactivate TTS_Service
+  
+  RTC_Server -> Client: 发送语音流进行播放
+else 连接失败
+  RTC_Server --> Client: 发送连接失败通知
+  Client -> User: 显示连接失败信息
+end
+
+' Client -> AudioModule: 音频数据预处理
+' activate AudioModule
+' AudioModule -> ASR_Service: 发送预处理后的音频
+' activate ASR_Service
+' ASR_Service -> AudioModule: 返回识别结果
+' deactivate ASR_Service
+' AudioModule -> TTS_Service: 发送文本进行语音合成
+' activate TTS_Service
+' TTS_Service -> AudioModule: 返回合成语音
+' deactivate TTS_Service
+' AudioModule -> Client: 提供语音输出
+' deactivate AudioModule
+' Client -> User: 播报语音
+
+@enduml

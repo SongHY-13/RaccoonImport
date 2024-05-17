@@ -1,0 +1,24 @@
+@startuml
+start
+:用户发起语音通信请求;
+if (RTC连接成功?) then (是)
+:启动语音流采集;
+while (通信会话未结束)
+    if (需要语音识别?) then (是)
+    :将语音流转发到ASR服务;
+    :接收转写后的文本;
+    endif
+    if (需要文本到语音转换?) then (是)
+    :将文本发送给TTS服务;
+    :TTS服务生成语音;
+    :接收生成的语音流;
+    endif
+    :通过RTC发送语音流;
+endwhile
+:关闭RTC连接;
+else(否)
+:提示用户检查网络设置;
+:重试RTC连接;
+endif
+stop
+@enduml
