@@ -1,38 +1,81 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <title>Simple WebRTC Client</title>
+    <title>Simple WebRTC Client with Button-Triggered Audio</title>
 </head>
 <body>
-    <h1>Simple WebRTC Client</h1>
+    <h2>Control Audio Stream</h2>
+    <button id="startButton">Start Audio</button>
+    <button id="stopButton" disabled>Stop Audio</button>
+    <audio id="audioPlayer" controls></audio>
     <script>
-        async function initWebRTC() {
-            const pc = new RTCPeerConnection();
+        let peerConnection;
+        let audioStream;
+        let isStreaming = false;
 
-            // 创建offer
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
+        document.getElementById('startButton').addEventListener('click', async () => {
+            if (!isStreaming) {
+                try {
+                    // 获取音频流
+                    audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    isStreaming = true;
+                    document.getElementById('startButton').disabled = true;
+                    document.getElementById('stopButton').disabled = false;
 
-            // 发送offer到服务器
-            const response = await fetch('/offer', {
-                method: 'POST',
-                body: JSON.stringify(offer),
-                headers: {
-                    'Content-Type': 'application/json'
+                    // 获取音频元素
+                    const audioPlayer = document.getElementById('audioPlayer');
+                    audioPlayer.srcObject = audioStream;
+
+                    // 创建RTCPeerConnection
+                    peerConnection = new RTCPeerConnection();
+
+                    // 添加音频轨道
+                    audioStream.getAudioTracks().forEach(track => {
+                        peerConnection.addTrack(track, audioStream);
+                    });
+
+                    // 创建offer
+                    const offer = await peerConnection.createOffer();
+                    await peerConnection.setLocalDescription(offer);
+
+                    // 发送offer到服务器
+                    const response = await fetch('/offer', {
+                        method: 'POST',
+                        body: JSON.stringify(offer),
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    const answer = await response.json();
+                    await peerConnection.setRemoteDescription(answer);
+
+                    // 打印连接状态
+                    peerConnection.oniceconnectionstatechange = () => {
+                        console.log('ICE ConnectionState:', peerConnection.iceConnectionState);
+                    };
+                } catch (error) {
+                    console.error('Error initializing WebRTC:', error);
                 }
-            });
-            const answer = await response.json();
-            await pc.setRemoteDescription(answer);
+            }
+        });
 
-            // 打印连接状态
-            pc.oniceconnectionstatechange = () => {
-                console.log('ICE ConnectionState:', pc.iceConnectionState);
-            };
-        }
+        document.getElementById('stopButton').addEventListener('click', async () => {
+            if (isStreaming) {
+                try {
+                    // 停止音频流
+                    audioStream.getTracks().forEach(track => track.stop());
+                    isStreaming = false;
+                    document.getElementById('startButton').disabled = false;
+                    document.getElementById('stopButton').disabled = true;
 
-        // 初始化WebRTC
-        initWebRTC();
+                    // 关闭WebRTC连接
+                    peerConnection.close();
+                } catch (error) {
+                    console.error('Error stopping WebRTC:', error);
+                }
+            }
+        });
     </script>
 </body>
 </html>

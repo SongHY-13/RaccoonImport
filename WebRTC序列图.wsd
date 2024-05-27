@@ -1,0 +1,91 @@
+@startuml 
+title WebRTC Peer-to-Peer Communication
+
+skinparam sequenceMessageAlign center
+skinparam style strictuml
+' skinparam responseMessageBelowArrow true
+skinparam backgroundColor #F5F5F5  
+skinparam sequence {
+  ArrowColor #008CBA  
+  ActorBorderColor #666666  
+  LifeLineBorderColor #CCCCCC  
+  LifeLineBackgroundColor #EAEAEA  
+
+  ParticipantBorderColor #008CBA  
+  ParticipantBackgroundColor #D6EAF8  
+  ParticipantFontSize 12  
+  ParticipantFontColor #333333  
+
+  ActorBackgroundColor #FFFFFF  
+  ActorFontColor #333333  
+  ActorFontSize 17  
+  ActorFontName Helvetica
+}
+participant PeerA as A
+participant PeerB as B
+participant SignalServer as Signal
+participant STUN_TURN
+
+activate A
+activate Signal
+A -> Signal: connect
+deactivate A
+
+activate B
+B -> Signal: connect
+deactivate Signal
+deactivate B
+
+A -> STUN_TURN: Request STUN/TURN\nServices for NAT Traversal
+B -> STUN_TURN: Request STUN/TURN\nServices for NAT Traversal
+
+activate A
+A -> A: Create PeerConnection\nAdd Audio Stream
+deactivate A
+
+activate B
+B -> B: Create PeerConnection\nAdd Audio Stream
+deactivate B
+
+activate A
+A -> A: Create Offer
+A -> A: setLocalDescription
+A -> STUN_TURN: 
+A -> Signal: Send SDP Offer
+deactivate A
+
+activate Signal
+Signal -> B: Receive SDP Offer
+deactivate Signal
+
+activate B
+B -> B: setRemoteDescription
+B -> B: Create Answer\nsetLocalDescription
+B -> Signal: Send SDP Answer
+deactivate B
+
+activate Signal
+Signal -> A: Receive SDP Answer
+deactivate Signal
+
+activate A
+A -> A: setRemoteDescription
+deactivate A
+
+A -> STUN_TURN: Gather ICE Candidates
+B -> STUN_TURN: Gather ICE Candidates
+
+A -> Signal: onicecandidate\nSend ICE Candidate
+Signal -> B: Receive ICE Candidate\nAdd ICE Candidate
+B -> Signal: onicecandidate\nSend ICE Candidate
+Signal -> A: Receive ICE Candidate\nAdd ICE Candidate
+
+activate A
+A -> B: P2PChannel Established\nonAddStream for Audio
+deactivate A
+
+activate B
+B -> A: P2PChannel Established\nonAddStream for Audio
+deactivate B
+
+@enduml
